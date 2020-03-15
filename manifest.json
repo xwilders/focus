@@ -1,0 +1,22 @@
+{
+  "manifest_version": 2,
+  "name": "Focus",
+  "version": "1.2",
+  "description": "Stop browsing aimlessly. Add friction to addictive websites and recover your freedom!",
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["index.js"]
+    }
+  ],
+  "browser_action": {
+    "default_popup": "popup.html"
+  },
+  "permissions": [
+    "tabs",
+    "storage"
+  ],
+  "icons": { "16": "yoga16.png",
+           "48": "yoga48.png",
+          "128": "yoga128.png" }
+}
