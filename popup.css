@@ -23,8 +23,8 @@ a.button:hover{
 }
 @media all and (max-width:30em){
   a.button{
-    display:block;
     margin:0.4em auto;
+    width: 100%;
   }
 }
 
@@ -37,5 +37,6 @@ a.button:hover{
 
 .box{
   height:20px;
-  margin: 5px; 
+  margin: 5px;
+  visibility: 'hidden'
 }

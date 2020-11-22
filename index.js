@@ -1,10 +1,26 @@
 const MAX_DELAY = 10;
-const MAX_READING = 60 * 5;
+const MAX_SCROLL = 3000;
+
+const MINUTE = 60;
+
+const showFriction = (friction = 0, showBelowTimer) => {
+  const path = chrome.runtime.getURL("yoga16.png");
+
+  for (let i = 0; i < friction; i++) {
+    const img = document.createElement("img");
+    img.src = path;
+
+    document.body.appendChild(img);
+    img.style = `position: fixed; z-index: 999999; right: ${i * 10}px; top: ${
+      showBelowTimer ? 28 : 0
+    }px; height: 10px; width: 10px;`;
+  }
+};
 
 const updateInitialTimer = (div, interval, delay = 0) => {
   div.innerHTML = `<div style="font-size:40px; text-align: center; padding: 200px;">${delay}</div>`;
 
-  if (delay >= 10) {
+  if (delay >= MAX_DELAY) {
     clearInterval(interval);
     document.body.removeChild(div);
   }
@@ -25,20 +41,20 @@ const delaySite = () => {
   );
 };
 
-const setClock = () => {
+const setClock = (MAX_TIME) => {
   const clockDiv = document.createElement("div");
   document.body.appendChild(clockDiv);
   clockDiv.style =
     "position: fixed; z-index: 999999; background: white; right: 0; top: 0;";
 
   const startTime = new Date();
-  let nextDelay = MAX_READING;
+  let nextDelay = MAX_TIME;
   let blink = false;
   const clockTimerInterval = setInterval(() => {
     const timeElapsed = Math.floor((new Date() - startTime) / 1000);
     const formattedTime =
-      timeElapsed > 60
-        ? `${Math.floor(timeElapsed / 60)}m ${timeElapsed % 60}s`
+      timeElapsed > MINUTE
+        ? `${Math.floor(timeElapsed / MINUTE)}m ${timeElapsed % MINUTE}s`
         : `${timeElapsed}s`;
 
     if (timeElapsed > nextDelay - 20) {
@@ -50,7 +66,7 @@ const setClock = () => {
 
     if (timeElapsed > nextDelay - 1) {
       blink = false;
-      nextDelay += MAX_READING;
+      nextDelay += MAX_TIME;
       delaySite();
     }
   }, 500);
@@ -68,14 +84,28 @@ function trimUrl(url) {
   return url;
 }
 
-chrome.storage.local.get(
-  ["sites", "friction_amount"],
-  ({ sites = [], friction_amount = 0 }) => {
-    const url = trimUrl(document.location.origin);
+function runOnScroll(e) {
+  const scrollAmount = window.pageYOffset;
 
-    if (sites.length && sites.includes(url)) {
-      setClock();
-      if (friction_amount === 2) delaySite();
-    }
+  if (scrollAmount < MAX_SCROLL) document.body.style.opacity = 1;
+  else
+    document.body.style.opacity =
+      1 - ((scrollAmount - MAX_SCROLL) * 2) / MAX_SCROLL;
+}
+
+chrome.storage.local.get(["sites"], ({ sites = [] }) => {
+  const url = trimUrl(document.location.origin);
+
+  const site = sites.find((s) => s.url === url) || {};
+
+  if (!site.friction) return;
+
+  showFriction(site.friction, site.friction === 2);
+
+  window.addEventListener("scroll", runOnScroll, { passive: true });
+
+  if (site.friction === 2) {
+    setClock(5 * MINUTE);
+    delaySite();
   }
-);
+});
