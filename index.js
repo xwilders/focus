@@ -6,8 +6,10 @@ const MINUTE = 60;
 const showFriction = (friction = 0, showBelowTimer) => {
   const path = chrome.runtime.getURL("yoga16.png");
 
+  // Add icons
   for (let i = 0; i < friction; i++) {
     const img = document.createElement("img");
+    img.className = "___chrome_delayer_imgs";
     img.src = path;
 
     document.body.appendChild(img);
@@ -22,13 +24,14 @@ const updateInitialTimer = (div, interval, delay = 0) => {
 
   if (delay >= MAX_DELAY) {
     clearInterval(interval);
-    document.body.removeChild(div);
+    if (document.body.contains(div)) document.body.removeChild(div);
   }
 };
 
 const delaySite = () => {
   const div = document.createElement("div");
   document.body.appendChild(div);
+  div.className = "___chrome_delayer_imgs";
   div.style =
     "position: fixed; z-index: 99999; height: 100%; width: 100%; background: white; left: 0; top: 0;";
 
@@ -44,6 +47,7 @@ const delaySite = () => {
 const setClock = (MAX_TIME) => {
   const clockDiv = document.createElement("div");
   document.body.appendChild(clockDiv);
+  clockDiv.className = "___chrome_delayer_imgs";
   clockDiv.style =
     "position: fixed; z-index: 999999; background: white; right: 0; top: 0;";
 
@@ -84,7 +88,7 @@ function trimUrl(url) {
   return url;
 }
 
-function runOnScroll(e) {
+function runOnScroll() {
   const scrollAmount = window.pageYOffset;
 
   if (scrollAmount < MAX_SCROLL) document.body.style.opacity = 1;
@@ -93,19 +97,40 @@ function runOnScroll(e) {
       1 - ((scrollAmount - MAX_SCROLL) * 2) / MAX_SCROLL;
 }
 
+function applyEffectsToSite({ friction }) {
+  showFriction(friction, friction === 2);
+
+  document.body.style.opacity = 1;
+  window.removeEventListener("scroll", runOnScroll);
+  if (friction === 1) {
+    runOnScroll();
+    window.addEventListener("scroll", runOnScroll, { passive: true });
+  }
+
+  if (friction === 2) {
+    setClock(5 * MINUTE);
+    delaySite();
+  }
+}
+
 chrome.storage.local.get(["sites"], ({ sites = [] }) => {
   const url = trimUrl(document.location.origin);
 
   const site = sites.find((s) => s.url === url) || {};
 
-  if (!site.friction) return;
+  applyEffectsToSite(site);
+});
 
-  showFriction(site.friction, site.friction === 2);
+chrome.storage.onChanged.addListener(({ sites = [] }, namespace) => {
+  const url = trimUrl(document.location.origin);
 
-  window.addEventListener("scroll", runOnScroll, { passive: true });
+  const site = sites.newValue.find((s) => s.url === url) || {};
 
-  if (site.friction === 2) {
-    setClock(5 * MINUTE);
-    delaySite();
+  // Remove existing icons
+  const elements = document.getElementsByClassName("___chrome_delayer_imgs");
+  while (elements.length > 0) {
+    elements[0].parentNode.removeChild(elements[0]);
   }
+
+  applyEffectsToSite(site);
 });
